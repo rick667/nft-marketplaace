@@ -67,8 +67,3 @@ export async function getOrder(id: string, signal?: AbortSignal): Promise<OrderD
 export async function listOrders(signal?: AbortSignal): Promise<OrderDto[]> {
   return (await apiClient.get<OrderDto[]>('/orders', { signal })).data
 }
-
-// Controle do backend simulado: representa a carteira aprovando ou recusando a transação.
-export async function simulateWalletOutcome(id: string, outcome: 'confirmed' | 'declined'): Promise<OrderDto> {
-  return (await apiClient.post<OrderDto>(`/__mock/order/${encodeURIComponent(id)}/settle`, { outcome })).data
-}

@@ -375,10 +375,6 @@
   line-height: 22px;
 }
 
-.order-receipt-footer .order-error {
-  color: #efa48f;
-}
-
 .order-explorer-button {
   width: 186px;
   min-width: 186px;
@@ -394,28 +390,10 @@
   font-size: 11px;
 }
 
-.order-pending-actions {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.order-pending-actions .button {
-  width: min(300px, 100%);
-  min-height: 44px;
-}
-
-.order-decline-button {
-  border: 1px solid #634128;
-  color: #cdb08a;
-  background: transparent;
-}
-
-.order-decline-button:hover {
-  border-color: #be735f;
-  color: #e0a392;
+.order-pending-note {
+  margin: 0;
+  color: #cfb28c;
+  font-size: 14px;
 }
 
 .order-retry-button {

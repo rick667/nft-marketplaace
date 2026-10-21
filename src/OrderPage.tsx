@@ -3,13 +3,10 @@ import { Link, getRouteApi } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Check, X } from 'lucide-react'
 import { apiErrorMessage, apiErrorStatus } from './api/client'
-import { simulateWalletOutcome } from './api/endpoints'
 import { useOrderQuery } from './api/hooks'
 import { formatEth } from './lib/eth'
 import PaymentPage from './PaymentPage'
 import './OrderPage.css'
-import { readAuthSession } from './auth/auth'
-import { useAuth } from './auth/AuthContext'
 
 const route = getRouteApi('/order/$orderId')
 
@@ -23,13 +20,10 @@ function formatDate(value: string) {
 
 function OrderPage() {
   const { orderId } = route.useParams()
-  const auth = useAuth()
   const queryClient = useQueryClient()
   const orderQuery = useOrderQuery(orderId)
   const order = orderQuery.data
-  const [error, setError] = useState('')
   const [explorerNotice, setExplorerNotice] = useState(false)
-  const [isSettling, setIsSettling] = useState(false)
   const status = order?.status
 
   useEffect(() => {
@@ -38,23 +32,6 @@ function OrderPage() {
       void queryClient.invalidateQueries({ queryKey: ['nfts'] })
     }
   }, [status, queryClient])
-
-  const settle = async (outcome: 'confirmed' | 'declined') => {
-    if (!readAuthSession()) {
-      auth.openAuth({ mode: 'login', returnTo: `/order/${encodeURIComponent(orderId)}` })
-      return
-    }
-    setError('')
-    setIsSettling(true)
-    try {
-      await simulateWalletOutcome(orderId, outcome)
-      await orderQuery.refetch()
-    } catch (reason) {
-      setError(apiErrorMessage(reason, 'Não foi possível atualizar o pedido.'))
-    } finally {
-      setIsSettling(false)
-    }
-  }
 
   if (orderQuery.isPending) {
     return (
@@ -142,15 +119,11 @@ function OrderPage() {
                 ? `Transação confirmada na rede ${order.collector.network}. A titularidade foi transferida para sua carteira conectada. Os valores acima são o snapshot do pedido.`
                 : order.status === 'declined'
                   ? `${order.failureReason} Seus itens continuam no carrinho, sem alterações.`
-                  : 'O pedido está registrado na sua conta. Atualizar a página não o envia novamente; você pode aguardar a confirmação ou simular o resultado da carteira.'}
-            </p>
-            {error && <p className="order-error" role="alert">{error}</p>}
-            {order.status === 'pending' ? (
-              <div className="order-pending-actions">
-                <button className="button button-primary" type="button" disabled={isSettling} onClick={() => void settle('confirmed')}>Confirmar transação simulada</button>
-                <button className="button order-decline-button" type="button" disabled={isSettling} onClick={() => void settle('declined')}>Simular recusa</button>
-              </div>
-            ) : order.status === 'confirmed' ? (
+                  : 'O pedido está registrado na sua conta. Atualizar a página não o envia novamente;                   você pode aguardar a confirmação, que chega em tempo real.'}
+                              </p>
+                              {order.status === 'pending' ? (
+                                <p className="order-pending-note" role="status">Aguardando a confirmação da rede…</p>
+                              ) : order.status === 'confirmed' ? (
               <>
                 <button className="button button-primary order-explorer-button" type="button" onClick={() => setExplorerNotice(true)}>
                   Ver no Etherscan
