@@ -1,0 +1,86 @@
+import { demoUser, expect, otherUser, test } from './fixtures'
+
+test.describe('autenticação', () => {
+  test('login com credenciais inválidas mostra erro e mantém o modal', async ({ app, page }) => {
+    await app.open('/profile')
+    const dialog = app.dialog()
+    await dialog.getByLabel('Senha', { exact: true }).fill('senhaerrada123')
+    await dialog.locator('form button[type=submit]').click()
+    await expect(dialog.locator('.auth-error')).toBeVisible()
+    await expect(page).toHaveURL(/cart=false|profile/)
+  })
+
+  test('cadastro cria a conta, entra e volta à rota protegida', async ({ app, page }) => {
+    await app.open('/profile')
+    const dialog = app.dialog()
+    await dialog.locator('#auth-register-tab').click()
+    await dialog.getByLabel('Nome de usuário').fill('Novo Colecionador')
+    await dialog.getByLabel('E-mail').fill(`novo-${Date.now()}@kurio.app`)
+    await dialog.getByLabel('Senha', { exact: true }).fill('SenhaForte123!')
+    await dialog.getByLabel('Confirmar senha').fill('SenhaForte123!')
+    await dialog.locator('form button[type=submit]').click()
+    await expect(app.dialog()).toHaveCount(0)
+    await expect(page).toHaveURL(/\/profile/)
+    await expect(page.getByRole('heading', { name: 'Alterar senha' })).toBeVisible()
+  })
+
+  test('cadastro valida senha curta e confirmação diferente', async ({ app }) => {
+    await app.open('/profile')
+    const dialog = app.dialog()
+    await dialog.locator('#auth-register-tab').click()
+    await dialog.getByLabel('Nome de usuário').fill('Fulano')
+    await dialog.getByLabel('E-mail').fill('fulano@kurio.app')
+    await dialog.getByLabel('Senha', { exact: true }).fill('curta')
+    await dialog.getByLabel('Confirmar senha').fill('curta')
+    await dialog.locator('form button[type=submit]').click()
+    await expect(dialog.getByLabel('Senha', { exact: true })).toHaveJSProperty('validity.tooShort', true)
+    await expect(app.dialog()).toBeVisible()
+    await dialog.getByLabel('Senha', { exact: true }).fill('SenhaForte123!')
+    await dialog.getByLabel('Confirmar senha').fill('Diferente123!')
+    await dialog.locator('form button[type=submit]').click()
+    await expect(dialog.locator('.auth-error')).toBeVisible()
+  })
+
+  test('sessão sobrevive ao reload e logout a encerra', async ({ app, page }) => {
+    await app.login()
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Alterar senha' })).toBeVisible()
+    await app.open('/')
+    await page.getByRole('button', { name: 'Sair' }).filter({ visible: true }).first().click()
+    await expect(page.getByRole('button', { name: 'Entrar' }).filter({ visible: true }).first()).toBeVisible()
+    expect(await app.sessionToken()).toBeUndefined()
+    await app.open('/profile')
+    await expect(app.dialog()).toBeVisible()
+  })
+
+  test('sessão expirada pede novo login ao buscar dados protegidos', async ({ app, mock, page }) => {
+    await app.login()
+    await app.open('/')
+    await mock.expireSession()
+    await page.getByRole('link', { name: /Abrir carrinho/ }).click()
+    await expect(page).toHaveURL(/\/cart/)
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await page.waitForTimeout(5200)
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await page.goto('/profile')
+    await expect(app.dialog()).toBeVisible()
+  })
+
+  test('troca de usuário isola favoritos e carrinho', async ({ app, page }) => {
+    await app.login(demoUser, '/profile')
+    await app.open('/nft/42')
+    await page.getByRole('button', { name: 'COMPRAR' }).click()
+    await expect(page.getByRole('link', { name: /Abrir carrinho, 1 NFTs/ })).toBeVisible()
+    await page.locator('.detail-favorite-button').click()
+    await expect(page.locator('.detail-favorite-button')).toHaveAttribute('aria-pressed', 'true')
+
+    await app.open('/')
+    await page.getByRole('button', { name: 'Sair' }).filter({ visible: true }).first().click()
+    await expect.poll(() => app.sessionToken()).toBeUndefined()
+
+    await app.login(otherUser, '/profile')
+    await app.open('/nft/42')
+    await expect(page.getByRole('link', { name: /Abrir carrinho, 0 NFTs/ })).toBeVisible()
+    await expect(page.locator('.detail-favorite-button')).toHaveAttribute('aria-pressed', 'false')
+  })
+})

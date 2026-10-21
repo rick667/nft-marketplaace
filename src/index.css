@@ -1,0 +1,90 @@
+html {
+  background: #120c09;
+  color: #f5f1eb;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #120c09;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+img {
+  max-width: 100%;
+}
+
+@tailwind utilities;
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+:focus-visible {
+  outline: 2px solid #e39853;
+  outline-offset: 3px;
+}
+
+.realtime-indicator {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #1b130e;
+  border: 1px solid #5a3f2a;
+  color: #f5f1eb;
+  font-size: 12px;
+}
+
+.realtime-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e39853;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skeleton::after {
+    animation: none;
+    transform: none;
+    background: none;
+  }
+}
+
+input,
+button,
+select {
+  font: inherit;
+}
